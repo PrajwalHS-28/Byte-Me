@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Byte Me — Sales Analytics</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230e1018'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%2338d9f5' stroke-width='2'/%3E%3Cpath d='M16 6 L16 16 L23 20' fill='none' stroke='%2338d9f5' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%2338d9f5'/%3E%3Cpath d='M8 16 Q12 10 16 16 Q20 22 24 16' fill='none' stroke='%23ff5277' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Open+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- ── CHART EXPAND OVERLAY ─────────────────────────────────── -->
+<div class="chart-expand-overlay" id="chart-expand-overlay" onclick="closeChartExpand(event)">
+  <div class="chart-expand-box" id="chart-expand-box">
+    <div class="chart-expand-header">
+      <div class="chart-expand-title" id="ce-title">Chart</div>
+      <div class="chart-expand-tag" id="ce-tag">DETAIL VIEW</div>
+      <button class="chart-expand-close" onclick="closeChartExpandDirect()">✕</button>
+    </div>
+    <div class="chart-expand-body" id="ce-body"></div>
+    <div class="chart-expand-hint">
+      <span style="color:var(--cyan)">●</span> Hover over elements for exact values · Press <kbd style="background:var(--bg4);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:9px">ESC</kbd> to close
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL ───────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-box" id="modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">—</div>
+        <div class="modal-sub" id="modal-sub">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="team">Byte Me</div>
+      <div class="sub">DATATHON 2026 · ANALYTICS</div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Navigation</div>
+      <div class="nav-item active" onclick="showSection('overview')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+          <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+        </svg>
+        Overview
+      </div>
+      <div class="nav-item" onclick="showSection('trends')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <polyline points="1,12 5,7 8,9 12,4 15,6"/>
+          <line x1="1" y1="15" x2="15" y2="15"/>
+        </svg>
+        Revenue Trends
+      </div>
+      <div class="nav-item" onclick="showSection('categories')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="6"/><line x1="8" y1="2" x2="8" y2="8"/><line x1="8" y1="8" x2="13" y2="5"/>
+        </svg>
+        Categories
+      </div>
+      <div class="nav-item" onclick="showSection('regions')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="7" r="3"/><path d="M8 1C4.7 1 2 3.7 2 7c0 4.5 6 8 6 8s6-3.5 6-8c0-3.3-2.7-6-6-6z"/>
+        </svg>
+        Regions
+      </div>
+      <div class="nav-item" onclick="showSection('pipeline')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="1" width="12" height="3" rx="1"/><rect x="2" y="6" width="9" height="3" rx="1"/>
+          <rect x="2" y="11" width="11" height="3" rx="1"/>
+        </svg>
+        Data Pipeline
+      </div>
+    </nav>
+
+    <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1v12a6 6 0 000-12z"/>
+      </svg>
+      <span id="theme-label">LIGHT MODE</span>
+    </button>
+
+    <!-- Font size control -->
+    <div class="font-ctrl">
+      <button class="font-ctrl-btn" onclick="adjustFontSize(-1)" title="Decrease font size">−</button>
+      <span class="font-ctrl-lbl" id="font-size-lbl">FONT 14px</span>
+      <button class="font-ctrl-btn" onclick="adjustFontSize(1)" title="Increase font size">+</button>
+    </div>
+
+    <div class="sidebar-footer">
+      Dataset: datathon2026_final.csv<br>
+      Rows: 8,029 · Cols: 26<br>
+      FY 2024 – 2026 (partial)
+    </div>
+  </aside>
+
+  <!-- ── MAIN ──────────────────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div>
+        <div class="header-title">Sales Intelligence Dashboard</div>
+        <div class="header-sub">BYTE ME · DATATHON 2026 · REAL-TIME ANALYTICS TERMINAL</div>
+      </div>
+      <div class="header-right">
+        <div id="clock" class="clock">--:--:-- IST</div>
+        <div class="status-pill">
+          <span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;animation:blink 1.2s step-end infinite"></span>
+          LIVE
+        </div>
+      </div>
+    </header>
+
+    <!-- SUBHEADER -->
+    <div class="subheader">
+      <span class="subheader-tag">SYS//ANALYTICS</span>
+      <span class="subheader-sep">›</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--fg-mid)">8,029 transactions · ₹2,017 Cr revenue · 3 fiscal years</span>
+      <span class="subheader-sep">›</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--cyan)">CLEAN DATA LOADED</span>
+    </div>
+
+    <!-- SCROLL AREA -->
+    <div class="scroll">
+
+      <!-- ═══ OVERVIEW ════════════════════════════════════════════ -->
+      <section id="sec-overview">
+
+        <!-- KPI strip -->
+        <div class="kpi-grid">
+          <div class="panel kpi-tile t-cyan" onclick="openModal('revenue')">
+            <div class="kpi-label">Net Revenue</div>
+            <div class="kpi-value c-cyan" id="kpi-netsales">₹0 Cr</div>
+            <div class="kpi-badge pos">FY 2024–2026</div>
+          </div>
+          <div class="panel kpi-tile t-green" onclick="openModal('profit')">
+            <div class="kpi-label">Total Profit</div>
+            <div class="kpi-value c-green" id="kpi-profit">₹0 Cr</div>
+            <div class="kpi-badge pos">+21% margin avg</div>
+          </div>
+          <div class="panel kpi-tile t-purple" onclick="openModal('aov')">
+            <div class="kpi-label">Avg. Order Value</div>
+            <div class="kpi-value c-purple" id="kpi-aov">₹0 L</div>
+            <div class="kpi-badge pur">per transaction</div>
+          </div>
+          <div class="panel kpi-tile t-red" onclick="openModal('returns')">
+            <div class="kpi-label">Return Rate</div>
+            <div class="kpi-value c-red" id="kpi-return">0%</div>
+            <div class="kpi-badge neg">529 returns</div>
+          </div>
+        </div>
+
+        <!-- Year cards -->
+        <div class="sec-label">Annual Breakdown</div>
+        <div class="year-strip">
+          <div class="panel year-card" style="cursor:pointer" onclick="openModal('fy2024')">
+            <div class="year-label">FY 2024</div>
+            <div class="year-val" style="color:var(--cyan)">₹726 Cr</div>
+            <div class="year-note">12 months · 3,204 orders</div>
+          </div>
+          <div class="panel year-card" style="cursor:pointer" onclick="openModal('fy2025')">
+            <div class="year-label">FY 2025</div>
+            <div class="year-val" style="color:var(--red)">₹732 Cr</div>
+            <div class="year-note">12 months · 3,285 orders</div>
+          </div>
+          <div class="panel year-card" style="cursor:pointer" onclick="openModal('fy2026')">
+            <div class="year-label">FY 2026</div>
+            <div class="year-val" style="color:var(--amber)">₹558 Cr</div>
+            <div class="year-note">9 months (Jan–Sep) · 1,540 orders</div>
+          </div>
+          <div class="panel year-card" style="cursor:pointer" onclick="openModal('dataset')">
+            <div class="year-label">Total Orders</div>
+            <div class="year-val" style="color:var(--purple)">8,029</div>
+            <div class="year-note">post-clean dataset · 26 columns</div>
+          </div>
+        </div>
+
+        <!-- Sales channels -->
+        <div class="sec-label">Sales Channels</div>
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Channel Distribution</div>
+            <div class="panel-tag">NET SALES</div>
+          </div>
+          <div class="panel-body">
+            <div class="channel-grid">
+              <div class="channel-pill">
+                <div class="channel-name">Online</div>
+                <div class="channel-pct" style="color:var(--cyan)">50.7%</div>
+                <div class="channel-amt">₹1,022 Cr</div>
+                <div class="channel-bar" style="background:var(--cyan);width:100%"></div>
+              </div>
+              <div class="channel-pill">
+                <div class="channel-name">In-Store</div>
+                <div class="channel-pct" style="color:var(--purple)">25.1%</div>
+                <div class="channel-amt">₹506 Cr</div>
+                <div class="channel-bar" style="background:var(--purple);width:49.5%"></div>
+              </div>
+              <div class="channel-pill">
+                <div class="channel-name">Mobile App</div>
+                <div class="channel-pct" style="color:var(--green)">24.2%</div>
+                <div class="channel-amt">₹489 Cr</div>
+                <div class="channel-bar" style="background:var(--green);width:47.7%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Segments -->
+        <div class="sec-label">Customer Segments</div>
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Segment Revenue</div>
+            <div class="panel-tag">SHARE OF SALES</div>
+          </div>
+          <div class="panel-body">
+            <div class="seg-grid">
+              <div class="seg-row">
+                <div class="seg-name">Retail</div>
+                <div class="seg-bar-wrap">
+                  <div class="seg-bar" style="width:51.3%;background:var(--cyan)"></div>
+                  <span class="seg-lbl">51.3%</span>
+                </div>
+                <div class="seg-pct" style="color:var(--cyan)">₹1,035 Cr</div>
+              </div>
+              <div class="seg-row">
+                <div class="seg-name">Wholesale</div>
+                <div class="seg-bar-wrap">
+                  <div class="seg-bar" style="width:25.4%;background:var(--amber)"></div>
+                  <span class="seg-lbl">25.4%</span>
+                </div>
+                <div class="seg-pct" style="color:var(--amber)">₹512 Cr</div>
+              </div>
+              <div class="seg-row">
+                <div class="seg-name">Corporate</div>
+                <div class="seg-bar-wrap">
+                  <div class="seg-bar" style="width:23.3%;background:var(--purple)"></div>
+                  <span class="seg-lbl">23.3%</span>
+                </div>
+                <div class="seg-pct" style="color:var(--purple)">₹470 Cr</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment methods -->
+        <div class="sec-label">Payment Methods</div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Payment Breakdown</div>
+            <div class="panel-tag">5 METHODS</div>
+          </div>
+          <div class="panel-body">
+            <div class="pay-chips">
+              <div class="pay-chip" style="border-color:var(--cyan);color:var(--cyan);background:var(--cyan-bg)">Credit Card · 21.2% · ₹427 Cr</div>
+              <div class="pay-chip" style="border-color:var(--green);color:var(--green);background:var(--green-bg)">UPI · 20.3% · ₹409 Cr</div>
+              <div class="pay-chip" style="border-color:var(--purple);color:var(--purple);background:var(--purple-bg)">Cash · 20.1% · ₹405 Cr</div>
+              <div class="pay-chip" style="border-color:var(--amber);color:var(--amber);background:var(--amber-bg)">Debit Card · 19.5% · ₹393 Cr</div>
+              <div class="pay-chip" style="border-color:var(--red);color:var(--red);background:var(--red-bg)">Net Banking · 18.9% · ₹381 Cr</div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ═══ TRENDS ══════════════════════════════════════════════ -->
+      <section id="sec-trends" hidden>
+        <div class="sec-label">Revenue Trends</div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Monthly Revenue — FY 2024 vs FY 2025</div>
+            <div class="panel-tag">₹ Cr · MONTHLY</div>
+          </div>
+          <div class="panel-body" style="overflow-x:auto">
+            <svg id="trend-chart" class="chart-area" viewBox="0 0 700 220" preserveAspectRatio="xMidYMid meet" style="min-width:360px;height:220px"></svg>
+          </div>
+        </div>
+
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">FY 2026 — Partial (Jan–Sep)</div>
+              <div class="panel-tag" style="color:var(--amber);border-color:var(--amber)">9 MONTHS</div>
+            </div>
+            <div class="panel-body" style="overflow-x:auto">
+              <svg id="trend-2026" class="chart-area" viewBox="0 0 320 140" style="min-width:280px;height:140px"></svg>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Key Insights</div>
+              <div class="panel-tag">HIGHLIGHTS</div>
+            </div>
+            <div class="panel-body">
+              <div class="insight-list">
+                <div class="insight-item c">
+                  <div class="insight-title">Best month ever — May 2025</div>
+                  <div class="insight-val" style="color:var(--cyan)">₹9,472 units → spike +78% vs Apr</div>
+                </div>
+                <div class="insight-item r">
+                  <div class="insight-title">FY 2025 low point — Feb</div>
+                  <div class="insight-val" style="color:var(--red)">₹4,563 — weakest month across all years</div>
+                </div>
+                <div class="insight-item a">
+                  <div class="insight-title">FY 2024 Dec peak</div>
+                  <div class="insight-val" style="color:var(--amber)">₹7,034 — festive season lift</div>
+                </div>
+                <div class="insight-item d">
+                  <div class="insight-title">FY 2026 run-rate</div>
+                  <div class="insight-val" style="color:var(--purple)">₹62M avg/mo · on track for ₹744 Cr full year</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- YoY Revenue comparison bar chart -->
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Year-on-Year Revenue — All 3 FYs</div>
+              <div class="panel-tag">₹ Cr · BAR COMPARISON</div>
+            </div>
+            <div class="panel-body" style="overflow-x:auto">
+              <svg id="yoy-bar-svg" viewBox="0 0 320 160" style="width:100%;height:160px;min-width:260px"></svg>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Quarterly Profit Margins — FY 2024–2025</div>
+              <div class="panel-tag">% MARGIN · LINE</div>
+            </div>
+            <div class="panel-body" style="overflow-x:auto">
+              <svg id="margin-line-svg" viewBox="0 0 360 180" style="width:100%;height:160px;min-width:260px"></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Net Sales by Month bar chart Jan 2024 – Sep 2026 -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Net Sales by Month — Jan 2024 to Sep 2026</div>
+            <div class="panel-tag">33 MONTHS · BAR</div>
+          </div>
+          <div class="panel-body" style="overflow-x:auto">
+            <svg id="monthly-sales-bar-svg" class="chart-area chart-expandable" viewBox="0 0 860 200" preserveAspectRatio="xMidYMid meet" style="min-width:520px;height:200px;width:100%"></svg>
+          </div>
+        </div>
+
+        <!-- Monthly Margin % chart -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Profit Margin % by Month — Jan 2024 to Sep 2026</div>
+            <div class="panel-tag" style="color:var(--green);border-color:var(--green)">% MARGIN · 33 MONTHS</div>
+          </div>
+          <div class="panel-body" style="overflow-x:auto">
+            <svg id="monthly-margin-svg" class="chart-area chart-expandable" viewBox="0 0 860 200" preserveAspectRatio="xMidYMid meet" style="min-width:520px;height:200px;width:100%"></svg>
+          </div>
+        </div>
+
+        <!-- Monthly heatmap -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Monthly Revenue Heatmap — All 3 Years</div>
+            <div class="panel-tag">HEAT · Jan–Dec</div>
+          </div>
+          <div class="panel-body" style="overflow-x:auto">
+            <div id="month-heatmap" style="min-width:400px"></div>
+          </div>
+        </div>
+
+        <!-- Per-category revenue trend charts -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Revenue Trends by Category</div>
+            <div class="panel-tag">6 CATEGORIES · 3 FY</div>
+          </div>
+          <div class="panel-body">
+            <div class="cat-filter-tabs" id="cat-filter-tabs"></div>
+            <div class="cat-chart-grid" id="cat-chart-grid"></div>
+            <div class="cat-legend" style="margin-top:12px;">
+              <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#38d9f5"></span>FY 2024</span>
+              <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#ff5277"></span>FY 2025</span>
+              <span class="cat-legend-item"><span class="cat-legend-dot" style="background:#ffd166;border-top:2px dashed #ffd166;background:transparent;width:14px;height:0;display:inline-block;vertical-align:middle;margin:0 4px 0 2px"></span>FY 2026</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profit Margin by Category -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Profit Margin % by Category</div>
+            <div class="panel-tag" style="color:var(--green);border-color:var(--green)">% MARGIN · COMPARISON</div>
+          </div>
+          <div class="panel-body">
+            <svg id="cat-margin-svg" viewBox="0 0 700 260" style="width:100%;height:auto;overflow:visible"></svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ CATEGORIES ══════════════════════════════════════════ -->
+      <section id="sec-categories" hidden>
+        <div class="sec-label">Product Categories</div>
+
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Revenue by Category</div>
+              <div class="panel-tag">6 CATEGORIES</div>
+            </div>
+            <div class="panel-body">
+              <div id="cat-bars" class="bar-row"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Share Breakdown</div>
+              <div class="panel-tag">DONUT</div>
+            </div>
+            <div class="panel-body">
+              <div class="donut-wrap">
+                <svg id="donut-svg" viewBox="0 0 120 120" style="width:120px;height:120px;flex-shrink:0"></svg>
+                <div id="donut-legend" class="donut-legend"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pie chart — large animated -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Revenue by Category — Proportional Pie</div>
+            <div class="panel-tag">ANIMATED · HOVER FOR VALUES</div>
+          </div>
+          <div class="panel-body">
+            <div class="pie-wrap" style="justify-content:center;gap:32px;flex-wrap:wrap">
+              <svg id="pie-svg" viewBox="0 0 360 360" style="width:min(360px,100%);height:auto;flex-shrink:0"></svg>
+              <div id="pie-legend" style="display:flex;flex-direction:column;gap:10px;min-width:200px;justify-content:center"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment breakdown pie -->
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Payment Method Split</div>
+              <div class="panel-tag">₹ Cr · 5 METHODS</div>
+            </div>
+            <div class="panel-body">
+              <div class="pie-wrap" style="flex-direction:column;align-items:center;gap:14px">
+                <svg id="pay-pie-svg" viewBox="0 0 200 200" style="width:180px;height:180px"></svg>
+                <div id="pay-pie-legend" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"></div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Segment Revenue — Stacked View</div>
+              <div class="panel-tag">FY 2024–2026</div>
+            </div>
+            <div class="panel-body" style="overflow-x:auto">
+              <svg id="segment-stack-svg" viewBox="0 0 300 160" style="width:100%;height:160px;min-width:260px"></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Category Highlights</div>
+            <div class="panel-tag">ANALYSIS</div>
+          </div>
+          <div class="panel-body">
+            <div class="insight-list">
+              <div class="insight-item c">
+                <div class="insight-title">Electronics dominates at 65.8% share</div>
+                <div class="insight-val" style="color:var(--cyan)">₹1,326.43 Cr — 4.6× the next category</div>
+              </div>
+              <div class="insight-item r">
+                <div class="insight-title">Long-tail compression</div>
+                <div class="insight-val" style="color:var(--red)">Books + Beauty combined = only 5.8% of revenue</div>
+              </div>
+              <div class="insight-item a">
+                <div class="insight-title">Sports &amp; Fashion growth potential</div>
+                <div class="insight-val" style="color:var(--amber)">14.3% combined share — underpenetrated segments</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ REGIONS ════════════════════════════════════════════= -->
+      <section id="sec-regions" hidden>
+        <div class="sec-label">Regional Performance</div>
+
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Revenue by Region</div>
+              <div class="panel-tag">₹ Cr · 4 ZONES</div>
+            </div>
+            <div class="panel-body" style="overflow-x:auto">
+              <svg id="region-chart" viewBox="0 0 340 120" style="min-width:260px;height:120px;width:100%"></svg>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Regional Shares</div>
+              <div class="panel-tag">BAR CHART</div>
+            </div>
+            <div class="panel-body">
+              <div class="bar-row">
+                <div class="bar-item">
+                  <div class="bar-info">
+                    <span class="bar-name">North</span>
+                    <span class="bar-val" style="color:var(--cyan)">₹559.12 Cr</span>
+                    <span class="bar-pct">27.7%</span>
+                  </div>
+                  <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+                </div>
+                <div class="bar-item">
+                  <div class="bar-info">
+                    <span class="bar-name">West</span>
+                    <span class="bar-val" style="color:var(--red)">₹518.95 Cr</span>
+                    <span class="bar-pct">25.7%</span>
+                  </div>
+                  <div class="bar-track"><div class="bar-fill r" style="width:92.8%"></div></div>
+                </div>
+                <div class="bar-item">
+                  <div class="bar-info">
+                    <span class="bar-name">East</span>
+                    <span class="bar-val" style="color:var(--amber)">₹482.67 Cr</span>
+                    <span class="bar-pct">23.9%</span>
+                  </div>
+                  <div class="bar-track"><div class="bar-fill a" style="width:86.3%"></div></div>
+                </div>
+                <div class="bar-item">
+                  <div class="bar-info">
+                    <span class="bar-name">South</span>
+                    <span class="bar-val" style="color:var(--green)">₹456.41 Cr</span>
+                    <span class="bar-pct">22.6%</span>
+                  </div>
+                  <div class="bar-track"><div class="bar-fill g" style="width:81.6%"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Region pie + region-by-category breakdown -->
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Region Revenue Share</div>
+              <div class="panel-tag">ANIMATED PIE</div>
+            </div>
+            <div class="panel-body">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+                <svg id="region-pie-svg" viewBox="0 0 200 200" style="width:180px;height:180px"></svg>
+                <div id="region-pie-legend" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"></div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Top Cities by Revenue</div>
+              <div class="panel-tag">₹ Cr · RANKED</div>
+            </div>
+            <div class="panel-body" style="overflow-x:auto">
+              <svg id="city-bar-svg" viewBox="0 0 300 200" style="width:100%;height:200px;min-width:260px"></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">City Coverage</div>
+            <div class="panel-tag">POST-STANDARDISATION</div>
+          </div>
+          <div class="panel-body">
+            <div class="info-box" style="background:var(--green-bg);border:1px solid var(--green);border-radius:var(--radius)">
+              <div class="info-box-title" style="color:var(--green)">✓ 4 city-name variants standardised via REGEX + MAP</div>
+              <div style="font-family:var(--font-body);font-size:11.5px;color:var(--fg-mid)">All variations mapped to canonical forms:</div>
+              <div class="city-list">
+                <span class="city-chip" style="border-color:var(--cyan);color:var(--cyan)">Bangalore → Bengaluru</span>
+                <span class="city-chip" style="border-color:var(--purple);color:var(--purple)">Mumbai variants → Mumbai</span>
+                <span class="city-chip" style="border-color:var(--amber);color:var(--amber)">Delhi variants → New Delhi</span>
+                <span class="city-chip" style="border-color:var(--green);color:var(--green)">Chennai → Chennai</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ PIPELINE ═══════════════════════════════════════════= -->
+      <section id="sec-pipeline" hidden>
+        <div class="sec-label">Data Cleaning Pipeline</div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+          <div class="stat-mini">
+            <div class="stat-mini-label">Raw Rows</div>
+            <div class="stat-mini-val" style="color:var(--red)">8,285</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">Clean Rows</div>
+            <div class="stat-mini-val" style="color:var(--green)">8,029</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">Rows Removed</div>
+            <div class="stat-mini-val" style="color:var(--amber)">256</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">Final Columns</div>
+            <div class="stat-mini-val" style="color:var(--purple)">26</div>
+          </div>
+        </div>
+
+        <!-- Pipeline funnel chart -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Data Flow Funnel — Rows through Each Step</div>
+            <div class="panel-tag">8,285 → 8,029</div>
+          </div>
+          <div class="panel-body" style="overflow-x:auto">
+            <svg id="funnel-svg" viewBox="0 0 680 140" style="width:100%;height:140px;min-width:500px"></svg>
+          </div>
+        </div>
+
+        <!-- THE TABLE — last word of Change col wrapped in .change-word -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">8-Step Cleaning Log</div>
+            <div class="panel-tag" style="color:var(--green);border-color:var(--green)">PANDAS · PYTHON</div>
+          </div>
+          <div class="panel-body" style="padding:0;overflow-x:auto">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Cleaning Step</th>
+                  <th>Before</th>
+                  <th>After</th>
+                  <th>Change / Method</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr onclick="openModal('pipe01')" title="Click for details">
+                  <td class="step-num">01</td>
+                  <td class="step-desc">Junk columns removed</td>
+                  <td class="step-before">29 cols</td>
+                  <td class="step-after">26 cols</td>
+                  <td class="change-cell">−3 <span class="change-word w-red">cols</span></td>
+                </tr>
+                <tr onclick="openModal('pipe02')" title="Click for details">
+                  <td class="step-num">02</td>
+                  <td class="step-desc">Blank &amp; summary rows dropped</td>
+                  <td class="step-before">8,285 rows</td>
+                  <td class="step-after">8,260 rows</td>
+                  <td class="change-cell">−25 <span class="change-word w-amber">rows</span></td>
+                </tr>
+                <tr onclick="openModal('pipe03')" title="Click for details">
+                  <td class="step-num">03</td>
+                  <td class="step-desc">Missing OrderDate filtered</td>
+                  <td class="step-before">34 missing</td>
+                  <td class="step-after">8,232 rows</td>
+                  <td class="change-cell">−28 <span class="change-word w-amber">rows</span></td>
+                </tr>
+                <tr onclick="openModal('pipe04')" title="Click for details">
+                  <td class="step-num">04</td>
+                  <td class="step-desc">Invalid TransactionIDs removed</td>
+                  <td class="step-before">96 flagged</td>
+                  <td class="step-after">8,136 rows</td>
+                  <td class="change-cell">−96 <span class="change-word w-red">rows</span></td>
+                </tr>
+                <tr onclick="openModal('pipe05')" title="Click for details">
+                  <td class="step-num">05</td>
+                  <td class="step-desc">Duplicate transactions dropped</td>
+                  <td class="step-before">101 dupes</td>
+                  <td class="step-after">8,035 rows</td>
+                  <td class="change-cell">−101 <span class="change-word w-red">rows</span></td>
+                </tr>
+                <tr onclick="openModal('pipe06')" title="Click for details">
+                  <td class="step-num">06</td>
+                  <td class="step-desc">Missing numeric values filled (11 cols)</td>
+                  <td class="step-before">42+ nulls</td>
+                  <td class="step-after">0 nulls</td>
+                  <td class="change-cell">MEDIAN <span class="change-word w-cyan">FILL</span></td>
+                </tr>
+                <tr onclick="openModal('pipe07')" title="Click for details">
+                  <td class="step-num">07</td>
+                  <td class="step-desc">Outlier Winsorisation (IQR × 1.5)</td>
+                  <td class="step-before">unbounded</td>
+                  <td class="step-after">8,029 rows</td>
+                  <td class="change-cell">71 <span class="change-word w-purple">capped</span></td>
+                </tr>
+                <tr onclick="openModal('pipe08')" title="Click for details">
+                  <td class="step-num">08</td>
+                  <td class="step-desc">City name standardisation</td>
+                  <td class="step-before">4 variants</td>
+                  <td class="step-after">canonical</td>
+                  <td class="change-cell">REGEX+ <span class="change-word w-green">MAP</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">Winsorisation Details</div>
+            <div class="panel-tag">OUTLIER TREATMENT</div>
+          </div>
+          <div class="panel-body">
+            <div class="info-box" style="background:var(--purple-bg);border:1px solid var(--purple);border-radius:var(--radius)">
+              <div class="info-box-title" style="color:var(--purple)">71 extreme values capped across numeric columns</div>
+              <div style="font-family:var(--font-body);font-size:11.5px;color:var(--fg-mid);margin-top:5px">
+                IQR × 1.5 fence applied to all 11 numeric columns. Values below Q1 − 1.5×IQR capped to lower fence; above Q3 + 1.5×IQR to upper fence. Rows retained — only extreme values trimmed. Dataset integrity preserved at 8,029 records.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMN REMOVALS DETAIL -->
+        <div class="sec-label">Column Removals — Step 01 Detail</div>
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">3 Columns Removed (29 → 26)</div>
+            <div class="panel-tag" style="color:var(--red);border-color:var(--red)">JUNK COLS</div>
+          </div>
+          <div class="panel-body" style="padding:0">
+            <div class="pipe-drill" style="margin:0;border:none;border-radius:0">
+              <div class="pipe-drill-head"><span>Column Name</span><span>Reason for Removal</span></div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--red)"></div>
+                <div class="pipe-drill-text"><strong>Unnamed: 0</strong> — Auto-generated index column from CSV export. Duplicate of the row index; carries no business meaning.</div>
+              </div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--red)"></div>
+                <div class="pipe-drill-text"><strong>row_id</strong> — Internal staging ID created during ETL pipeline. Identical to transaction sequence; redundant with TransactionID.</div>
+              </div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--red)"></div>
+                <div class="pipe-drill-text"><strong>_merge</strong> — Artifact column from a pandas merge operation in upstream processing. Contains only "both" / NaN; zero analytical value.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW REMOVALS DETAIL -->
+        <div class="sec-label">Row Removals — Steps 02–05 Detail</div>
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div class="panel-title">256 Rows Removed (8,285 → 8,029)</div>
+            <div class="panel-tag" style="color:var(--amber);border-color:var(--amber)">ROW AUDIT</div>
+          </div>
+          <div class="panel-body" style="padding:0">
+            <div class="pipe-drill" style="margin:0;border:none;border-radius:0">
+              <div class="pipe-drill-head"><span>Step</span><span>Rows Removed · Reason</span></div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--amber)"></div>
+                <div class="pipe-drill-text"><strong>Step 02 — 25 rows</strong>: Blank summary/footer rows inserted by the source reporting system. All fields NULL or containing aggregate labels like "TOTAL", "SUBTOTAL", "Grand Total".</div>
+              </div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--amber)"></div>
+                <div class="pipe-drill-text"><strong>Step 03 — 28 rows</strong>: OrderDate field NULL or unparseable (non-date strings). Without a valid date, temporal analysis and FY attribution are impossible.</div>
+              </div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--red)"></div>
+                <div class="pipe-drill-text"><strong>Step 04 — 96 rows</strong>: TransactionID failed format validation (expected pattern TXN-XXXXXXXX). IDs were NULL, numeric-only, or malformed strings — could not be traced to source systems.</div>
+              </div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--red)"></div>
+                <div class="pipe-drill-text"><strong>Step 05 — 101 rows</strong>: Exact duplicate TransactionIDs with identical values across all 26 columns — confirmed double-entry. First occurrence retained; 101 duplicates dropped.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MEDIAN FILL DETAIL -->
+        <div class="sec-label">Median Fill — Step 06 Detail</div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">11 Columns — Null Values Imputed</div>
+            <div class="panel-tag" style="color:var(--cyan);border-color:var(--cyan)">MEDIAN FILL</div>
+          </div>
+          <div class="panel-body" style="padding:0">
+            <div class="pipe-drill" style="margin:0;border:none;border-radius:0">
+              <div class="pipe-drill-head"><span>Column</span><span>Nulls Filled · Median Value Used</span></div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--cyan)"></div>
+                <div class="pipe-drill-text"><strong>UnitPrice</strong> — 7 nulls → filled with column median ₹24,850</div>
+              </div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--cyan)"></div>
+                <div class="pipe-drill-text"><strong>Quantity</strong> — 5 nulls → filled with column median 3 units</div>
+              </div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--cyan)"></div>
+                <div class="pipe-drill-text"><strong>Discount</strong> — 6 nulls → filled with column median 0.10 (10%)</div>
+              </div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--cyan)"></div>
+                <div class="pipe-drill-text"><strong>ShippingCost</strong> — 4 nulls → filled with column median ₹320</div>
+              </div>
+              <div class="pipe-drill-row">
+                <div class="pipe-drill-bullet" style="background:var(--cyan)"></div>
+                <div class="pipe-drill-text"><strong>NetSales, GrossProfit, TaxAmount, ReturnFlag + 3 others</strong> — remaining 20+ nulls spread across 7 columns; each filled with its own column median to preserve distribution shape.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div><!-- /scroll -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script src="script.js"></script>
+</body>
+</html>
